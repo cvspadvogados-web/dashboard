@@ -493,8 +493,8 @@ const TAB_LABELS={'__home__':'🏠 Início','1000 ':'Clientes 1000','9000':'Pote
 const palette=['#c9a24b','#5b9bd5','#46b87a','#e0b341','#d57b9b','#9b8bd5','#e0925a','#5ac0b0','#c96a6a','#7ab85a'];
 const $=id=>document.getElementById(id);
 /* Versão do painel — atualiza aqui sempre que fizeres alterações */
-const APP_VERSION='3.1';
-const APP_DATE='14/06/2026';
+const APP_VERSION='3.2';
+const APP_DATE='15/06/2026';
 (function(){const el=$('version');if(el)el.innerHTML=`<b>v${APP_VERSION}</b>Criado em ${APP_DATE}`;})();
 /* ===== PER-SOURCE PARSERS ===== */
 /* ============================================================
@@ -1259,7 +1259,7 @@ const SOURCES=[
   {id:'vrgvnc', label:'CVSP_VRGVNC.xlsx (Visa, Golden Visa, Nacionalidade, Contencioso, Datalex)', slots:1,
    keys:['Visa / Residência','Golden Visa','Nacionalidade','Contencioso','Processos Datalex'],
    parse:wbs=>parseVRGVNC(wbs[0])},
-  {id:'geral', label:'Listagem geral — CVSP GERAL 3.2.xlsm  ⚠ ficheiro .xlsm (macro)', slots:1,
+  {id:'geral', label:'Listagem geral — CVSP GERAL (mirror automático)', slots:1,
    keys:['1000 ','9000','1000 - INACTIVOS','PARCEIROS','CONSULTAS','__equipa__'],
    parse:wbs=>parseGeneral(wbs[0])},
   {id:'irs', label:'IRS 2025 (CVSP_-_IRS_2025.xlsx)', slots:1,
@@ -2716,25 +2716,201 @@ function showReactivate(haveCache){
 async function forgetConnections(){ await hdbClear(); SOURCES.forEach(s=>{srcState[s.id].handles=new Array(s.slots).fill(null);}); DATA={}; setStatus('Ligações e dados guardados esquecidos.'); renderConnPanel(); }
 
 /* =====================================================================
-   MÓDULO DROPBOX — token fixo embutido (sem OAuth, sem redirect URI)
-   Funciona em qualquer dispositivo sem configuração adicional.
+   MÓDULO DROPBOX — token fixo embutido (sem OAuth)
    ===================================================================== */
 const DBX_APP_KEY   = '9r3ndljz4lrw8h0';
 const DBX_TOKEN_KEY = '__dbx_token__';
 const DBX_PATHS_KEY = '__dbx_paths__';
 const DBX_USER_KEY  = '__dbx_user__';
 
-/* Token de acesso fixo — gerado manualmente no portal Dropbox */
 const DBX_FIXED_TOKEN = 'sl.u.AGgAmqkzH71w3grDenvS3AKN5CncsmfPSc3HQQ2e3soaaxwmBfDrwgnP3iMgs7t4tf1qcnpvxXMx6nd6OUkaHbrdVpu86pteA-yN6B-VXvOmJNMMiwY3LiyQVJmR-5IWFj12mTmhGVU2NVCbuVKICcQyHGTj7u_dKgVg6NIk3euvBjKrXWtRcKp25_Plw4LKqMIgejISexEmXQicP8YQZpVIpOKwOeEO7cu6aBUHtl720zkss1k2PMPjvct_7s245oXFHpf7E8e3ZuiWe4SVFj1FzNM4NWiZ-7u_zAPhfTQ5a6CTfsuOWznDX6X3a2wBjsIolxqDkb5Xm0cMDEbHN7eFZm95U3sTr1F-ZziYbnuAR2470Cty5gJaRbIRWo34Yzg0RPOcLmPDaVZYYRdGRWIDL_0reacvfISla1T5D2ALzNjhdaTaIWOO2Ikj1m4Xk8mc3tnIs-o8Z3_Pr7arsTuwRtVGn9nCxk6oWENGMLj_bdPgcZDz1by1WqMY7fFfdJelvU6nQYQ4RDRPL665kne2JwXoAUdWImWgfkyarMGaZ83dssN54ZEaHiKx4Cm28OHKSTsTpYbN5VdIX8MJguiXUcPkqEU-fH8lHM7hK4Oqj-aynUz8pyex00FIllpqoGU6k0e5SuNIFV2yTQZewoI57oTV5OfyrchRr7P1La2vU88mYHscP1sth096xtyE7EUexp1XvkOv1lNBh_MvkHMQGZTnZgyuvm7VfJ3yqbdt1TXMdLR421ivC_I-vcPul51KlNuWMMof179gBONV5I5NTKtCCMc9t9m0lKXOPTHxDpMhggadNVEhfzgmeQDPvGaYIfjqLH1Zcud4eT_VXE4XhVeV0YUnEZDXloVpcAVs6EhhHWVy65fFZjWO5zzChQAJH57c7ZD4J3fFiAaLTFZWqPsrFB96WO-80a4h5w2dJ_c0bkSvaT1UJ-Wkb5hQzpXpWAuN656M6FQZI4Qcdugrn9FF6X7vlyRA391QZdqEUp7x12qKCue_BdgEVdVgvslbSSMCT3HKIdxhi2_4iUFkSiFH-P3tjf0iiSUL1155Qvju9mUF3a8xuM6qaZgeoQlDLgmu3mhHTG_H1oFxXN4TSLf9kMZU_Teozrfk5xlRCv23-f1REN02ZlOUlVvlrOr1TwI8KsYNNF4GtK5GRwKY1UdEM8yN_4qcNV-Xk7j_SDVWjTZxpDNPjNWlm9KaAfxezA7rJJyVb5Cxroxy61zXz_zemIVDCl8TImkmgf7ip3HV3aCpw-5FlhsR-7Bpaz30RVdNHcOcdZR_NW84AL9VGvM5LA_0ciej9y47UOUxTdJEpgFRp15y89wyxVJGz9M';
 
 const DBX_DEFAULT_PATHS = {
-  geral:  '/CVSP/CLIENTES 1000/0.1 - Lista clientes - dossiers/CVSP GERAL 3.2.xlsm',
+  geral:  '/CVSP/CLIENTES 1000/0.1 - Lista clientes - dossiers/CVSP_GERAL_MIRROR.xlsx',
   vrgvnc: '/CVSP/CLIENTES 1000/0.1 - Lista clientes - dossiers/CVSP VRGVNC.xlsx',
   irs:    '/CVSP/CLIENTES 1000/0.1 - Lista clientes - dossiers/CVSP - IRS 2025 1.1.xlsx',
 };
 
-let dbx = { token: DBX_FIXED_TOKEN, user: null, paths: null, state: {} };
+let dbx = { token: DBX_FIXED_TOKEN, user: {name:'CVSP Advogados', email:'servicos@cvsp.pt'}, paths: null, state: {} };
 
+function dbxSaveToken(t){}
+function dbxLoadToken(){ return DBX_FIXED_TOKEN; }
+function dbxSaveUser(u){}
+function dbxLoadUser(){ return {name:'CVSP Advogados', email:'servicos@cvsp.pt'}; }
+function dbxSavePaths(p){ try{ localStorage.setItem(DBX_PATHS_KEY,JSON.stringify(p)); }catch(e){} }
+function dbxLoadPaths(){ try{ const s=localStorage.getItem(DBX_PATHS_KEY); return s?JSON.parse(s):null; }catch(e){ return null; } }
+function dbxClear(){ try{ localStorage.removeItem(DBX_PATHS_KEY); }catch(e){} dbx.paths=null; dbx.state={}; }
+
+async function dbxConnect(){ await dbxLoadAll(); }
+async function dbxCheckCallback(){}
+
+async function dbxDownloadFile(token, path){
+  const r = await fetch('https://content.dropboxapi.com/2/files/download',{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+token,'Dropbox-API-Arg':JSON.stringify({path})},
+  });
+  if(r.ok) return r.arrayBuffer();
+  /* Fallback para xlsm: exportar como xlsx */
+  if(path.toLowerCase().endsWith('.xlsm')){
+    const r2 = await fetch('https://content.dropboxapi.com/2/files/export',{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+token,'Dropbox-API-Arg':JSON.stringify({path, export_format:'xlsx'})},
+    });
+    if(r2.ok) return r2.arrayBuffer();
+    const t2=await r2.text().catch(()=>'');
+    throw new Error('export '+r2.status+': '+t2.slice(0,120));
+  }
+  const t=await r.text().catch(()=>'');
+  throw new Error('download '+r.status+': '+t.slice(0,120));
+}
+
+async function dbxIngestOne(srcId, path){
+  dbx.state[srcId]='loading'; dbxRenderSection();
+  try{
+    const buf = await dbxDownloadFile(dbx.token, path);
+    const wb  = XLSX.read(new Uint8Array(buf),{type:'array',cellDates:true});
+    const src = SRC_BY_ID[srcId], st = srcState[srcId];
+    st.wbs[0]=wb; st.names[0]=path.split('/').pop();
+    applySource(src);
+    dbx.state[srcId]='ok';
+  }catch(err){
+    console.error('dbxIngestOne',srcId,err);
+    dbx.state[srcId]='err:'+err.message;
+  }
+  dbxRenderSection();
+}
+
+async function dbxLoadAll(){
+  const p = dbx.paths || DBX_DEFAULT_PATHS;
+  setStatus('A descarregar ficheiros do Dropbox…');
+  await Promise.all([
+    dbxIngestOne('geral', p.geral),
+    dbxIngestOne('vrgvnc',p.vrgvnc),
+    dbxIngestOne('irs',   p.irs),
+  ]);
+  rebuildAfterLoad();
+  setStatus('<b>Dropbox:</b> ficheiros carregados.');
+}
+
+async function dbxCheckCallbackOld(){}
+
+function dbxOpenPathModal(){
+  const paths = dbx.paths || JSON.parse(JSON.stringify(DBX_DEFAULT_PATHS));
+  let m = document.getElementById('dbxPathModal');
+  if(!m){ m=document.createElement('div'); m.id='dbxPathModal'; m.className='dbx-path-modal'; document.body.appendChild(m); }
+  m.innerHTML=`<div class="dbx-path-inner">
+    <h3>⚙ Configurar caminhos Dropbox</h3>
+    <p class="dbx-path-hint">Caminho completo no Dropbox, começando com <code>/</code>.<br>
+    Exemplo: <code>/CVSP/CLIENTES 1000/CVSP GERAL 3.2.xlsm</code></p>
+    <label style="font-size:.72rem;color:var(--muted);display:block;margin:8px 0 3px">CVSP GERAL mirror (.xlsx)</label>
+    <input id="dbxPathGeral" value="${paths.geral||''}">
+    <label style="font-size:.72rem;color:var(--muted);display:block;margin:8px 0 3px">CVSP VRGVNC (.xlsx)</label>
+    <input id="dbxPathVrgvnc" value="${paths.vrgvnc||''}">
+    <label style="font-size:.72rem;color:var(--muted);display:block;margin:8px 0 3px">CVSP IRS 2025 (.xlsx)</label>
+    <input id="dbxPathIrs" value="${paths.irs||''}">
+    <div class="dbx-path-actions" style="margin-top:14px">
+      <button class="dbx-btn-small" onclick="document.getElementById('dbxPathModal').classList.remove('open')">Cancelar</button>
+      <button class="btn btn-primary" onclick="dbxSavePathsFromModal()">Guardar e recarregar</button>
+    </div></div>`;
+  m.classList.add('open');
+  m.onclick=e=>{ if(e.target===m) m.classList.remove('open'); };
+}
+function dbxSavePathsFromModal(){
+  dbx.paths={
+    geral:  document.getElementById('dbxPathGeral').value.trim(),
+    vrgvnc: document.getElementById('dbxPathVrgvnc').value.trim(),
+    irs:    document.getElementById('dbxPathIrs').value.trim(),
+  };
+  dbxSavePaths(dbx.paths);
+  document.getElementById('dbxPathModal').classList.remove('open');
+  dbxLoadAll();
+}
+
+function dbxRenderSection(){
+  const box = document.getElementById('dbxSection');
+  if(!box) return;
+  const stLbl = s => {
+    if(!s||s==='pending') return '<span class="dbx-file-state pending">por carregar</span>';
+    if(s==='loading')     return '<span class="dbx-file-state loading">⏳ a descarregar…</span>';
+    if(s==='ok')          return '<span class="dbx-file-state ok">✓ carregado</span>';
+    return                       '<span class="dbx-file-state err" title="'+esc(s.replace('err:',''))+'">✗ erro</span>';
+  };
+  if(!dbx.token){
+    box.innerHTML=`<div class="dbx-disconnected">
+      <div style="font-size:1.8rem;margin-bottom:8px">☁</div>
+      <div style="font-size:.85rem;font-weight:600;margin-bottom:4px">Dropbox não ligado</div>
+      <div style="font-size:.75rem;color:var(--muted);margin-bottom:14px">Liga para carregar os ficheiros automaticamente em qualquer dispositivo — incluindo telemóvel.</div>
+      <button class="dbx-btn-connect" onclick="dbxConnect()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L6 6l6 4 6-4-6-4zM6 10l-6 4 6 4 6-4-6-4zm12 0l-6 4 6 4 6-4-6-4zM6 18l6 4 6-4-6-4-6 4z"/></svg>
+        Ligar Dropbox
+      </button></div>`;
+    return;
+  }
+  const initials=(dbx.user?.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const p = dbx.paths || DBX_DEFAULT_PATHS;
+  const srcLabels={geral:'CVSP GERAL',vrgvnc:'CVSP VRGVNC',irs:'IRS 2025'};
+  const filesHtml=Object.entries(srcLabels).map(([id,lbl])=>{
+    const path=p[id]||'(não definido)';
+    return `<div class="dbx-file">
+      <span class="dbx-file-icon">📊</span>
+      <div class="dbx-file-info">
+        <div class="dbx-file-name">${esc(lbl)} <span style="font-weight:400;color:var(--muted)">— ${esc(path.split('/').pop())}</span></div>
+        <div class="dbx-file-path">${esc(path)}</div>
+      </div>
+      ${stLbl(dbx.state[id])}</div>`;
+  }).join('');
+  box.innerHTML=`<div class="dbx-connected">
+    <div class="dbx-account">
+      <div class="dbx-avatar">${initials}</div>
+      <div><div class="dbx-name">${esc(dbx.user?.name||'Dropbox')}</div><div class="dbx-email">${esc(dbx.user?.email||'')}</div></div>
+      <span style="margin-left:auto;font-size:.7rem;padding:2px 8px;border-radius:10px;background:rgba(0,97,218,.2);color:#5ba3f5;font-weight:700">✓ Ligado</span>
+    </div>
+    <div class="dbx-files">${filesHtml}</div>
+    <div class="dbx-actions">
+      <button class="dbx-btn-small" onclick="dbxLoadAll()">↻ Recarregar</button>
+      <button class="dbx-btn-small" onclick="dbxOpenPathModal()">⚙ Caminhos</button>
+      <button class="dbx-btn-danger" onclick="dbxDisconnect()">✕ Desligar</button>
+    </div></div>`;
+}
+
+function dbxDisconnect(){
+  if(!confirm('Desligar o Dropbox?')) return;
+  dbxClear(); dbxRenderSection();
+}
+
+/* Patch renderConnPanel para incluir secção Dropbox */
+const _origRCP = renderConnPanel;
+renderConnPanel = function(){
+  _origRCP();
+  const box=$('connPanel'); if(!box) return;
+  if(!document.getElementById('dbxSection')){
+    const wrap=document.createElement('div');
+    wrap.className='dbx-section';
+    wrap.innerHTML=`<div class="dbx-section-title">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L6 6l6 4 6-4-6-4zM6 10l-6 4 6 4 6-4-6-4zm12 0l-6 4 6 4 6-4-6-4zM6 18l6 4 6-4-6-4-6 4z"/></svg>
+      Dropbox — carregamento automático</div>
+    <div id="dbxSection"></div>`;
+    box.appendChild(wrap);
+  }
+  dbxRenderSection();
+};
+
+/* Init Dropbox */
+(async()=>{
+  dbx.token = dbxLoadToken();
+  dbx.user  = dbxLoadUser();
+  /* Se os caminhos guardados não tiverem a pasta '0.1 - Lista clientes - dossiers',
+     são da versão antiga — apaga e usa os novos defaults */
+  const saved = dbxLoadPaths();
+  if(saved && !Object.values(saved).some(p=>p.includes('0.1 - Lista'))){
+    dbxSavePaths(null); // limpa paths antigos
+    dbx.paths = JSON.parse(JSON.stringify(DBX_DEFAULT_PATHS));
+  } else {
+    dbx.paths = saved || JSON.parse(JSON.stringify(DBX_DEFAULT_PATHS));
+  }
+  await dbxCheckCallback();
+  if(dbx.token && document.getElementById('dbxSection')) dbxRenderSection();
+})();
 
 /* =====================================================================
    MÓDULO PIN — PIN fixo 3003 (hash SHA-256 embutido)
