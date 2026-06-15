@@ -493,7 +493,7 @@ const TAB_LABELS={'__home__':'🏠 Início','1000 ':'Clientes 1000','9000':'Pote
 const palette=['#c9a24b','#5b9bd5','#46b87a','#e0b341','#d57b9b','#9b8bd5','#e0925a','#5ac0b0','#c96a6a','#7ab85a'];
 const $=id=>document.getElementById(id);
 /* Versão do painel — atualiza aqui sempre que fizeres alterações */
-const APP_VERSION='3.4';
+const APP_VERSION='3.5';
 const APP_DATE='15/06/2026';
 (function(){const el=$('version');if(el)el.innerHTML=`<b>v${APP_VERSION}</b>Criado em ${APP_DATE}`;})();
 /* ===== PER-SOURCE PARSERS ===== */
@@ -2780,42 +2780,39 @@ async function dbxIngestOne(srcId, path){
   dbxRenderSection();
 }
 
-/* Descarrega o GERAL directamente do GitHub (sem token Dropbox) */
-const GITHUB_GERAL_URL = 'https://raw.githubusercontent.com/cvspadvogados-web/dashboard/main/CVSP_GERAL_MIRROR.xlsx';
+/* GitHub CDN — todos os ficheiros vêm do GitHub (script mirror faz upload automático) */
+const GITHUB_BASE = 'https://raw.githubusercontent.com/cvspadvogados-web/dashboard/main/';
+const GITHUB_FILES = {
+  geral:  { url: GITHUB_BASE + 'CVSP_GERAL_MIRROR.xlsx',  name: 'CVSP_GERAL_MIRROR.xlsx'  },
+  vrgvnc: { url: GITHUB_BASE + 'CVSP_VRGVNC.xlsx',        name: 'CVSP_VRGVNC.xlsx'        },
+  irs:    { url: GITHUB_BASE + 'CVSP_IRS_2025.xlsx',       name: 'CVSP_IRS_2025.xlsx'      },
+};
 
-async function githubDownloadGeral(){
-  const r = await fetch(GITHUB_GERAL_URL + '?t=' + Date.now());
-  if(!r.ok) throw new Error('GitHub download failed: ' + r.status);
-  return r.arrayBuffer();
+async function githubIngestOne(srcId){
+  dbx.state[srcId]='loading'; dbxRenderSection();
+  try{
+    const {url, name} = GITHUB_FILES[srcId];
+    const r = await fetch(url + '?t=' + Date.now());
+    if(!r.ok) throw new Error('GitHub ' + r.status + ': ' + url);
+    const buf = await r.arrayBuffer();
+    const wb  = XLSX.read(new Uint8Array(buf),{type:'array',cellDates:true});
+    const src = SRC_BY_ID[srcId], st = srcState[srcId];
+    st.wbs[0]=wb; st.names[0]=name;
+    applySource(src);
+    dbx.state[srcId]='ok';
+  }catch(err){
+    console.error('githubIngestOne',srcId,err);
+    dbx.state[srcId]='err:'+err.message;
+  }
+  dbxRenderSection();
 }
 
 async function dbxLoadAll(){
-  const p = dbx.paths || DBX_DEFAULT_PATHS;
-  setStatus('A descarregar ficheiros…');
-
-  /* GERAL vem do GitHub (sempre actualizado pelo script mirror) */
-  const geralPromise = (async()=>{
-    dbx.state['geral']='loading'; dbxRenderSection();
-    try{
-      const buf = await githubDownloadGeral();
-      const wb  = XLSX.read(new Uint8Array(buf),{type:'array',cellDates:true});
-      const src = SRC_BY_ID['geral'], st = srcState['geral'];
-      st.wbs[0]=wb; st.names[0]='CVSP_GERAL_MIRROR.xlsx';
-      applySource(src);
-      dbx.state['geral']='ok';
-    }catch(err){
-      console.error('geral github',err);
-      /* fallback: tenta via Dropbox */
-      await dbxIngestOne('geral', p.geral);
-    }
-    dbxRenderSection();
-  })();
-
-  /* VRGVNC e IRS vêm do Dropbox */
+  setStatus('A descarregar ficheiros do GitHub…');
   await Promise.all([
-    geralPromise,
-    dbxIngestOne('vrgvnc', p.vrgvnc),
-    dbxIngestOne('irs',    p.irs),
+    githubIngestOne('geral'),
+    githubIngestOne('vrgvnc'),
+    githubIngestOne('irs'),
   ]);
   rebuildAfterLoad();
   setStatus('<b>Ficheiros carregados.</b>');
