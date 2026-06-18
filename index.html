@@ -523,8 +523,8 @@ const TAB_LABELS={'__home__':'🏠 Início','1000 ':'Clientes 1000','9000':'Pote
 const palette=['#c9a24b','#5b9bd5','#46b87a','#e0b341','#d57b9b','#9b8bd5','#e0925a','#5ac0b0','#c96a6a','#7ab85a'];
 const $=id=>document.getElementById(id);
 /* Versão do painel — atualiza aqui sempre que fizeres alterações */
-const APP_VERSION='3.8';
-const APP_DATE='15/06/2026';
+const APP_VERSION='3.9';
+const APP_DATE='18/06/2026';
 (function(){const el=$('version');if(el)el.innerHTML=`<b>v${APP_VERSION}</b>Criado em ${APP_DATE}`;})();
 /* ===== PER-SOURCE PARSERS ===== */
 /* ============================================================
@@ -3167,30 +3167,36 @@ function reservadaLoadExtrato(event, conta){
   reader.onload=e=>{
     try{
       const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
-      const ws=wb.Sheets[wb.SheetNames[0]];
-      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
       const movs=[];
-      let headerFound=false;
-      for(const row of rows){
-        const cells=row.map(c=>String(c||'').trim());
-        /* Detecta linha de cabeçalho */
-        if(!headerFound){
-          if(cells.some(c=>c.includes('Data Mov')||c.includes('Descrição'))){
-            headerFound=true;
+      /* O mega_converter.py grava uma folha por conta/banco. Lê todas. */
+      const tiposValidos=['Honorários','Provisão','Despesa Cliente','Pagamento Escritório','Outro'];
+      const norm=s=>String(s||'').trim().toLowerCase();
+      for(const sheetName of wb.SheetNames){
+        const ws=wb.Sheets[sheetName];
+        const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+        if(!rows.length) continue;
+        /* Mapeia colunas pelo nome no cabeçalho (formato mega_converter: Data, Descrição, Valor, Tipo, Banco) */
+        const header=rows[0].map(c=>norm(c));
+        const colData=header.findIndex(h=>h==='data');
+        const colDesc=header.findIndex(h=>h.includes('descri'));
+        const colVal =header.findIndex(h=>h==='valor');
+        const colTipo=header.findIndex(h=>h==='tipo');
+        if(colData<0||colDesc<0||colVal<0) continue; /* não é folha de movimentos */
+        for(let r=1;r<rows.length;r++){
+          const cells=rows[r].map(c=>String(c==null?'':c).trim());
+          const data=cells[colData], desc=cells[colDesc];
+          const valStr=String(cells[colVal]||'').replace(/\s/g,'').replace(',','.');
+          const valor=parseFloat(valStr);
+          if(!data || !desc || isNaN(valor)) continue;
+          /* Respeita a classificação que já vem do script; só reclassifica se vier vazia */
+          let tipo = colTipo>=0 ? String(cells[colTipo]||'').trim() : '';
+          if(tipo && !tiposValidos.includes(tipo)) tipo='';
+          if(!tipo){
+            if(/trf.*cr|trf sepa.*de |receb/i.test(desc)) tipo='Honorários';
+            else if(/provis/i.test(desc)) tipo='Provisão';
+            else if(/pagserv|pagamento ao estado|instituto reg|not[aá]r/i.test(desc)) tipo='Despesa Cliente';
+            else if(/manutencao|manutençã|imposto de selo|comiss/i.test(desc)) tipo='Pagamento Escritório';
           }
-          continue;
-        }
-        /* Linha de dados: col0=data, col2=desc, col3=valor */
-        const data=cells[0], desc=cells[2], valStr=String(cells[3]||'').replace(',','.');
-        const valor=parseFloat(valStr);
-        if(data && desc && !isNaN(valor)){
-          /* Classificação automática por palavras-chave */
-          let tipo='';
-          const dl=desc.toLowerCase();
-          if(/trf.*cr|trf sepa.*de |receb/i.test(desc)) tipo='Honorários';
-          else if(/provis/i.test(desc)) tipo='Provisão';
-          else if(/pagserv|pagamento ao estado|instituto reg|not[aá]r/i.test(desc)) tipo='Despesa Cliente';
-          else if(/manutencao|manutençã|imposto de selo|comiss/i.test(desc)) tipo='Pagamento Escritório';
           movs.push({data,desc,valor,tipo});
         }
       }
