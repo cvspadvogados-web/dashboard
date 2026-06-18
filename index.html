@@ -524,7 +524,7 @@ const TAB_LABELS={'__home__':'🏠 Início','1000 ':'Clientes 1000','9000':'Pote
 const palette=['#c9a24b','#5b9bd5','#46b87a','#e0b341','#d57b9b','#9b8bd5','#e0925a','#5ac0b0','#c96a6a','#7ab85a'];
 const $=id=>document.getElementById(id);
 /* Versão do painel — atualiza aqui sempre que fizeres alterações */
-const APP_VERSION='3.9';
+const APP_VERSION='4.0';
 const APP_DATE='18/06/2026';
 (function(){const el=$('version');if(el)el.innerHTML=`<b>v${APP_VERSION}</b>Criado em ${APP_DATE}`;})();
 /* ===== PER-SOURCE PARSERS ===== */
@@ -3300,6 +3300,54 @@ function pagExportExcel(){
   XLSX.writeFile(wb,'CVSP_Pagamentos.xlsx');
 }
 
+function pagImportar(event){
+  const file=event.target.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+      if(!window._pagamentos) window._pagamentos=[];
+      // Chaves já existentes para evitar duplicados (por ficheiro ou ref+valor)
+      const existe=new Set(window._pagamentos.map(p=>(p._ficheiro||'')+'|'+(p.ref||'')+'|'+(p.valor||'')));
+      let novos=0, saltados=0;
+      const tiposValidos=['Fatura/Fornecedor','Pagamento ao Estado','Honorários a pagar','Outro'];
+      rows.forEach(r=>{
+        const g=k=>String(r[k]==null?'':r[k]).trim();
+        const ficheiro=g('Ficheiro');
+        const ref=g('Referência')||g('Referencia');
+        const valor=g('Valor');
+        const chave=ficheiro+'|'+ref+'|'+valor;
+        if(existe.has(chave)){ saltados++; return; }
+        let tipo=g('Tipo'); if(!tiposValidos.includes(tipo)) tipo='Fatura/Fornecedor';
+        window._pagamentos.push({
+          id:Date.now()+novos,
+          descricao:g('Descrição')||g('Descricao'),
+          entidade:g('Entidade'),
+          valor:valor,
+          ref:ref,
+          iban:g('IBAN'),
+          data_limite:g('Data Limite')||g('Data limite'),
+          tipo:tipo,
+          conta:'BPI 002 CVSP Advogados',
+          pago:false, data_pago:'', anexo_nome:'', anexo_data:'',
+          notas:g('Notas'),
+          _ficheiro:ficheiro
+        });
+        existe.add(chave); novos++;
+      });
+      setStatus(`Importados ${novos} pagamento(s)${saltados?` · ${saltados} já existentes ignorados`:''}`);
+      renderReservada();
+    }catch(err){
+      setStatus('Erro ao importar pagamentos: '+err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  event.target.value=''; // permite reimportar o mesmo ficheiro
+}
+
 function renderPagamentos(){
   const pags=window._pagamentos||[];
   const pendentes=pags.filter(p=>!p.pago);
@@ -3366,6 +3414,8 @@ function renderPagamentos(){
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
       <div class="reservada-section-title" style="margin:0">💳 Pagamentos a pagar</div>
       <div style="margin-left:auto;display:flex;gap:8px">
+        <input type="file" id="pagImportInput" accept=".xlsx,.xls" style="display:none" onchange="pagImportar(event)">
+        <button onclick="document.getElementById('pagImportInput').click()" style="background:var(--panel-2);border:1px solid var(--accent);border-radius:8px;padding:6px 10px;font-size:.72rem;color:var(--accent);cursor:pointer" title="Importar pagamentos do Excel gerado pelo faturas_converter">⬆ Importar PDFs lidos</button>
         ${pags.length?`<button onclick="pagExportExcel()" style="background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:.72rem;color:var(--muted);cursor:pointer">⬇ Excel</button>`:''}
         <button onclick="pagNovo()"
           style="background:var(--accent);color:#000;border:none;border-radius:8px;padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer">+ Novo pagamento</button>
