@@ -281,6 +281,35 @@
 .pz-user{display:inline-block;font-size:.68rem;font-weight:700;padding:0 6px;border-radius:10px;background:#1c2a3a;color:#7fb0e0;border:1px solid #263545;margin-left:6px;vertical-align:middle;line-height:1.6}
 .rp-new .rp-flag{background:#46b87a;color:#0c1a12}
 .irs-sub{font-size:.78rem;font-weight:700;padding:1px 8px;border-radius:10px}.sub-yes{background:#1c3a2e;color:#74d39a}.sub-no{color:#6b7785}
+/* ── Área Reservada ── */
+.reservada-lock{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:0}
+.reservada-lock .pin-logo{margin-bottom:20px;text-align:center}
+.reservada-lock .pin-brand{font-size:1.1rem;font-weight:700;color:var(--accent)}
+.reservada-lock .pin-sub{font-size:.75rem;color:var(--muted);margin-top:3px}
+.reservada-lock .pin-dots{display:flex;gap:12px;margin-bottom:24px;height:16px;align-items:center}
+.reservada-lock .pin-dot{width:13px;height:13px;border-radius:50%;border:2px solid var(--border);background:transparent;transition:background .12s,border-color .12s}
+.reservada-lock .pin-dot.filled{background:var(--accent);border-color:var(--accent)}
+.reservada-lock .pin-dot.error{background:var(--red);border-color:var(--red)}
+.reservada-lock .pin-dot.shake{animation:pinShake .35s ease}
+.reservada-lock .pin-msg{font-size:.75rem;color:var(--muted);min-height:16px;margin-bottom:16px;text-align:center}
+.reservada-lock .pin-msg.err{color:var(--red)}
+.reservada-lock .pin-pad{display:grid;grid-template-columns:repeat(3,70px);gap:10px}
+.reservada-lock .pin-key{width:70px;height:70px;border-radius:50%;background:var(--panel);border:1px solid var(--border);color:var(--text);font-size:1.2rem;font-weight:600;cursor:pointer;transition:background .12s,transform .08s;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;user-select:none}
+.reservada-lock .pin-key:active{background:var(--panel-2);transform:scale(.93)}
+.reservada-lock .pin-key.pin-zero{grid-column:2}
+.reservada-lock .pin-key.pin-del{background:transparent;border-color:transparent;color:var(--muted);font-size:1rem}
+.reservada-view{max-width:900px;margin:0 auto;padding-top:8px}
+.reservada-header{display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+.reservada-lock-btn{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:.75rem;color:var(--muted);cursor:pointer;margin-left:auto}
+.reservada-lock-btn:hover{border-color:var(--accent);color:var(--text)}
+.reservada-section{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;margin-bottom:16px}
+.reservada-section-title{font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:14px}
+.reservada-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.reservada-kpi{background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.reservada-kpi-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:6px}
+.reservada-kpi-val{font-size:1.4rem;font-weight:700;color:var(--text)}
+.reservada-coming{text-align:center;padding:40px 20px;color:var(--muted);font-size:.85rem}
+
 /* ── IBANs tab ── */
 .iban-page{max-width:820px;margin:0 auto;padding-top:8px}
 .iban-page .home-head{margin-bottom:16px}
@@ -466,6 +495,7 @@
     <div id="viewNacionalidade" style="display:none"></div>
     <div id="viewCalendario" style="display:none"></div>
     <div id="viewIBANS" style="display:none"></div>
+<div id="viewReservada" style="display:none"></div>
   </main>
 </div>
 
@@ -485,15 +515,15 @@ function assuntoTipo(v){
   }
   return 'Por classificar';
 }
-const SHEET_KEYS=['__home__','1000 ','9000','__tarefas__','__realestate__','__contencioso__','__nacionalidade__','__honorarios_calc__','__ibans__','PARCEIROS','CONSULTAS','IFICI','IRS 2025','Visa / Residência','Golden Visa','1000 - INACTIVOS'];
-const VIRTUAL_TABS=['__home__','__tarefas__','__realestate__','__contencioso__','__nacionalidade__','__honorarios_calc__','__ibans__'];
+const SHEET_KEYS=['__home__','1000 ','9000','__tarefas__','__realestate__','__contencioso__','__nacionalidade__','__honorarios_calc__','__ibans__','__reservada__','PARCEIROS','CONSULTAS','IFICI','IRS 2025','Visa / Residência','Golden Visa','1000 - INACTIVOS'];
+const VIRTUAL_TABS=['__home__','__tarefas__','__realestate__','__contencioso__','__nacionalidade__','__honorarios_calc__','__ibans__','__reservada__'];
 const SERVICE_COLS=["RF JSP","SS","Utente Saúde","REAL ESTATE","UTILITIES","RENDAS","Cond","IFICI","RNH","RNH CONJ","Backdate","IRS         2025","IRS         2024","AIMI","IMI","IUC","INIC ACTIV","Soc","IMT","GV","MI","VISA","NAC","Contencioso"];
 const QUICK_SVC={'Societário':['Soc'],'RNH':['RNH','RNH CONJ'],'IFICI':['IFICI'],'Visa / Residência':['VISA','GV']};
-const TAB_LABELS={'__home__':'🏠 Início','1000 ':'Clientes 1000','9000':'Potenciais','__tarefas__':'✔ Tarefas pendentes','__realestate__':'🏘 Real Estate','__contencioso__':'⚖ Contencioso','__nacionalidade__':'🛂 Nacionalidade','__honorarios_calc__':'🧾 Honorários Notariais','__ibans__':'🏦 IBANs','1000 - INACTIVOS':'Inactivos','PARCEIROS':'Parceiros','CONSULTAS':'Consultas','IFICI':'IFICI','IRS 2025':'IRS 2025','Visa / Residência':'Visa / Residência','Golden Visa':'Golden Visa','Processos Datalex':'Processos Datalex'};
+const TAB_LABELS={'__home__':'🏠 Início','1000 ':'Clientes 1000','9000':'Potenciais','__tarefas__':'✔ Tarefas pendentes','__realestate__':'🏘 Real Estate','__contencioso__':'⚖ Contencioso','__nacionalidade__':'🛂 Nacionalidade','__honorarios_calc__':'🧾 Honorários Notariais','__ibans__':'🏦 IBANs','__reservada__':'🔒 Reservada','1000 - INACTIVOS':'Inactivos','PARCEIROS':'Parceiros','CONSULTAS':'Consultas','IFICI':'IFICI','IRS 2025':'IRS 2025','Visa / Residência':'Visa / Residência','Golden Visa':'Golden Visa','Processos Datalex':'Processos Datalex'};
 const palette=['#c9a24b','#5b9bd5','#46b87a','#e0b341','#d57b9b','#9b8bd5','#e0925a','#5ac0b0','#c96a6a','#7ab85a'];
 const $=id=>document.getElementById(id);
 /* Versão do painel — atualiza aqui sempre que fizeres alterações */
-const APP_VERSION='3.5';
+const APP_VERSION='3.8';
 const APP_DATE='15/06/2026';
 (function(){const el=$('version');if(el)el.innerHTML=`<b>v${APP_VERSION}</b>Criado em ${APP_DATE}`;})();
 /* ===== PER-SOURCE PARSERS ===== */
@@ -1503,6 +1533,7 @@ function renderView(){
   if(state.tab==='__nacionalidade__'){allViews.forEach(v=>{const el=$(v);if(el)el.style.display='none';});$('subnav').innerHTML='';$('viewNacionalidade').style.display='block';renderNacionalidade();return;}
   if(state.tab==='__honorarios_calc__'){allViews.forEach(v=>{const el=$(v);if(el)el.style.display='none';});$('subnav').innerHTML='';$('viewHonorariosCalc').style.display='block';renderHonorariosCalc();return;}
   if(state.tab==='__ibans__'){allViews.forEach(v=>{const el=$(v);if(el)el.style.display='none';});$('subnav').innerHTML='';$('viewIBANS').style.display='block';renderIBANs();return;}
+  if(state.tab==='__reservada__'){allViews.forEach(v=>{const el=$(v);if(el)el.style.display='none';});$('subnav').innerHTML='';$('viewReservada').style.display='block';renderReservada();return;}
   if(state.tab==='Golden Visa'&&DATA['Golden Visa']){allViews.forEach(v=>{const el=$(v);if(el)el.style.display='none';});$('subnav').innerHTML='';$('viewGoldenVisa').style.display='block';renderGoldenVisa();return;}
   $('viewHome').style.display='none';
   renderSubnav();
@@ -2937,6 +2968,423 @@ renderConnPanel = function(){
   await dbxCheckCallback();
   if(dbx.token && document.getElementById('dbxSection')) dbxRenderSection();
 })();
+
+
+/* ══════════════════ ÁREA RESERVADA ══════════════════ */
+const RESERVADA_PIN_HASH = 'c474b68ee42e822260f8a516e807f3f38856f2f999476ddf7bdca5cab0e46c7e';
+const RESERVADA_DIGITS   = 6;
+let reservadaUnlocked    = false;
+let reservadaBuf         = '';
+
+async function reservadaHash(str){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function reservadaUpdateDots(cls){
+  for(let i=0;i<RESERVADA_DIGITS;i++){
+    const d=document.getElementById('rpd'+i);
+    if(!d) return;
+    d.className='pin-dot'+(i<reservadaBuf.length?' filled':'')+(cls?' '+cls:'');
+  }
+}
+
+function reservadaSetMsg(txt,isErr){
+  const el=document.getElementById('reservadaMsg');
+  if(el){ el.textContent=txt; el.className='pin-msg'+(isErr?' err':''); }
+}
+
+async function reservadaDigit(d){
+  if(reservadaBuf.length>=RESERVADA_DIGITS) return;
+  reservadaBuf+=d;
+  reservadaUpdateDots();
+  if(reservadaBuf.length<RESERVADA_DIGITS) return;
+  const entered=reservadaBuf; reservadaBuf='';
+  const h=await reservadaHash(entered);
+  if(h===RESERVADA_PIN_HASH){
+    reservadaUnlocked=true;
+    reservadaUpdateDots('');
+    reservadaSetMsg('');
+    renderReservada();
+  } else {
+    reservadaUpdateDots('error shake');
+    reservadaSetMsg('PIN incorrecto.',true);
+    setTimeout(()=>{ reservadaBuf=''; reservadaUpdateDots(''); reservadaSetMsg(''); },900);
+  }
+}
+
+function reservadaDel(){
+  if(reservadaBuf.length>0){ reservadaBuf=reservadaBuf.slice(0,-1); reservadaUpdateDots(); reservadaSetMsg(''); }
+}
+
+function reservadaLock(){ reservadaUnlocked=false; renderReservada(); }
+
+function renderReservada(){
+  const box=document.getElementById('viewReservada');
+  if(!box) return;
+
+  if(!reservadaUnlocked){
+    const dots=Array.from({length:RESERVADA_DIGITS},(_,i)=>`<div class="pin-dot" id="rpd${i}"></div>`).join('');
+    box.innerHTML=`<div class="reservada-lock">
+      <div class="pin-logo">
+        <div class="pin-brand">🔒 Área Reservada</div>
+        <div class="pin-sub">Acesso restrito — introduz o PIN de 6 dígitos</div>
+      </div>
+      <div class="pin-dots">${dots}</div>
+      <div class="pin-msg" id="reservadaMsg"></div>
+      <div class="pin-pad">
+        ${[1,2,3,4,5,6,7,8,9].map(n=>`<button class="pin-key" onclick="reservadaDigit('${n}')">${n}</button>`).join('')}
+        <button class="pin-key pin-zero" onclick="reservadaDigit('0')">0</button>
+        <button class="pin-key pin-del" onclick="reservadaDel()">⌫</button>
+      </div>
+    </div>`;
+    return;
+  }
+
+  /* ── Conteúdo financeiro ── */
+  const contaAtiva = window._reservadaConta || 'clientes';
+  const reservadaView = window._reservadaView || 'extratos';
+  const movimentos = window._reservadaMovs || { clientes:[], consulting:[], cvsp:[] };
+  const tipos = ['Honorários','Provisão','Despesa Cliente','Pagamento Escritório','Outro'];
+
+  function tipoColor(t){
+    return {
+      'Honorários':'var(--green)',
+      'Provisão':'var(--accent)',
+      'Despesa Cliente':'var(--accent-2)',
+      'Pagamento Escritório':'var(--muted)',
+      'Outro':'var(--muted)'
+    }[t]||'var(--muted)';
+  }
+
+  function kpiBar(movs){
+    const res={};
+    tipos.forEach(t=>res[t]=0);
+    movs.forEach(m=>{ if(m.tipo) res[m.tipo]=(res[m.tipo]||0)+m.valor; });
+    return Object.entries(res).filter(([,v])=>v!==0).map(([t,v])=>
+      `<div class="reservada-kpi">
+        <div class="reservada-kpi-label">${t}</div>
+        <div class="reservada-kpi-val" style="color:${tipoColor(t)};font-size:1rem">${v>=0?'+':''}${v.toLocaleString('pt-PT',{minimumFractionDigits:2})} €</div>
+      </div>`
+    ).join('');
+  }
+
+  function movTable(movs){
+    if(!movs.length) return `<div class="reservada-coming"><div style="font-size:1.5rem;margin-bottom:8px">📂</div>Carrega um extrato BPI para começar.</div>`;
+    return `<table style="width:100%;border-collapse:collapse;font-size:.78rem">
+      <thead><tr style="border-bottom:1px solid var(--border)">
+        <th style="text-align:left;padding:6px 8px;color:var(--muted);font-weight:600">Data</th>
+        <th style="text-align:left;padding:6px 8px;color:var(--muted);font-weight:600">Descrição</th>
+        <th style="text-align:right;padding:6px 8px;color:var(--muted);font-weight:600">Valor</th>
+        <th style="text-align:left;padding:6px 8px;color:var(--muted);font-weight:600">Tipo</th>
+      </tr></thead>
+      <tbody>${movs.map((m,i)=>`
+        <tr style="border-bottom:1px solid #1a1f2e">
+          <td style="padding:6px 8px;white-space:nowrap;color:var(--muted)">${m.data}</td>
+          <td style="padding:6px 8px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(m.desc)}">${esc(m.desc)}</td>
+          <td style="padding:6px 8px;text-align:right;font-weight:600;color:${m.valor>=0?'var(--green)':'var(--red)'}">${m.valor>=0?'+':''}${m.valor.toLocaleString('pt-PT',{minimumFractionDigits:2})} €</td>
+          <td style="padding:6px 8px">
+            <select style="background:var(--panel-2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:.72rem;padding:2px 6px;cursor:pointer"
+              onchange="reservadaSetTipo('${contaAtiva}',${i},this.value)">
+              <option value="">— classificar —</option>
+              ${tipos.map(t=>`<option value="${t}" ${m.tipo===t?'selected':''}>${t}</option>`).join('')}
+            </select>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+  }
+
+  /* KPIs consolidados */
+  const allMovs=[...movimentos.clientes,...movimentos.consulting,...movimentos.cvsp];
+  const totalHon=(allMovs.filter(m=>m.tipo==='Honorários').reduce((s,m)=>s+m.valor,0));
+  const totalProv=(allMovs.filter(m=>m.tipo==='Provisão').reduce((s,m)=>s+m.valor,0));
+  const totalDesp=(allMovs.filter(m=>m.tipo==='Despesa Cliente').reduce((s,m)=>s+m.valor,0));
+
+  const tabBtn=(id,label)=>`<button onclick="window._reservadaConta='${id}';renderReservada()"
+    style="padding:8px 16px;border-radius:8px;border:1px solid ${contaAtiva===id?'var(--accent)':'var(--border)'};
+    background:${contaAtiva===id?'rgba(201,162,75,.15)':'var(--panel-2)'};
+    color:${contaAtiva===id?'var(--accent)':'var(--muted)'};cursor:pointer;font-size:.8rem;font-weight:600">${label}</button>`;
+
+  box.innerHTML=`<div class="reservada-view">
+    <div class="reservada-header">
+      <h2 style="font-size:1.1rem;font-weight:700">🔒 Contabilidade</h2>
+      <button class="reservada-lock-btn" onclick="reservadaLock()">🔒 Bloquear</button>
+    </div>
+
+    <!-- KPIs consolidados -->
+    <div class="reservada-section" style="margin-bottom:12px">
+      <div class="reservada-section-title">Consolidado — todas as contas</div>
+      <div class="reservada-kpi-grid">
+        <div class="reservada-kpi"><div class="reservada-kpi-label">Honorários</div><div class="reservada-kpi-val" style="color:var(--green)">${totalHon.toLocaleString('pt-PT',{minimumFractionDigits:2})} €</div></div>
+        <div class="reservada-kpi"><div class="reservada-kpi-label">Provisões</div><div class="reservada-kpi-val" style="color:var(--accent)">${totalProv.toLocaleString('pt-PT',{minimumFractionDigits:2})} €</div></div>
+        <div class="reservada-kpi"><div class="reservada-kpi-label">Despesas Cliente</div><div class="reservada-kpi-val" style="color:var(--accent-2)">${totalDesp.toLocaleString('pt-PT',{minimumFractionDigits:2})} €</div></div>
+      </div>
+    </div>
+
+    <!-- Vista principal -->
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;border-bottom:1px solid var(--border);padding-bottom:10px">
+      <button onclick="window._reservadaView='extratos';renderReservada()"
+        style="padding:8px 16px;border-radius:8px;border:1px solid ${reservadaView==='extratos'?'var(--accent)':'var(--border)'};background:${reservadaView==='extratos'?'rgba(201,162,75,.15)':'var(--panel-2)'};color:${reservadaView==='extratos'?'var(--accent)':'var(--muted)'};cursor:pointer;font-size:.8rem;font-weight:600">📊 Extratos</button>
+      <button onclick="window._reservadaView='pagamentos';renderReservada()"
+        style="padding:8px 16px;border-radius:8px;border:1px solid ${reservadaView==='pagamentos'?'var(--accent)':'var(--border)'};background:${reservadaView==='pagamentos'?'rgba(201,162,75,.15)':'var(--panel-2)'};color:${reservadaView==='pagamentos'?'var(--accent)':'var(--muted)'};cursor:pointer;font-size:.8rem;font-weight:600">💳 Pagamentos a pagar ${(window._pagamentos||[]).filter(p=>!p.pago).length?`<span style="background:var(--red);color:#fff;border-radius:10px;padding:1px 7px;font-size:.68rem;margin-left:4px">${(window._pagamentos||[]).filter(p=>!p.pago).length}</span>`:''}</button>
+    </div>
+    ${reservadaView==='pagamentos'?renderPagamentos():''} 
+    ${reservadaView!=='extratos'?'':''} 
+    <!-- Selector de conta (só em extratos) -->
+    ${reservadaView!=='extratos'?'':`<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      ${tabBtn('clientes','👥 BPI Clientes (001)')}
+      ${tabBtn('cvsp','⚖ BPI CVSP (002)')}
+      ${tabBtn('consulting','💼 Santander Consulting')}
+    </div>`}
+
+    <!-- Extrato da conta activa -->
+    <div class="reservada-section">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div class="reservada-section-title" style="margin:0">${contaAtiva==='clientes'?'👥 BPI Clientes (001)':contaAtiva==='consulting'?'💼 Santander Consulting':'⚖ BPI CVSP (002)'}</div>
+        <label style="margin-left:auto;cursor:pointer">
+          <input type="file" accept=".xlsx,.xls" style="display:none" onchange="reservadaLoadExtrato(event,'${contaAtiva}')">
+          <span style="background:var(--accent);color:#000;padding:6px 12px;border-radius:8px;font-size:.75rem;font-weight:700;cursor:pointer">📂 Carregar extrato BPI</span>
+        </label>
+        ${movimentos[contaAtiva].length?`<button onclick="reservadaExport('${contaAtiva}')" style="background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:.72rem;color:var(--muted);cursor:pointer">⬇ Excel</button>`:''}
+      </div>
+      ${movimentos[contaAtiva].length?`<div class="reservada-kpi-grid" style="margin-bottom:14px">${kpiBar(movimentos[contaAtiva])}</div>`:''}
+      <div style="overflow-x:auto">${movTable(movimentos[contaAtiva])}</div>
+    </div>
+  </div>`;
+}
+
+function reservadaSetTipo(conta, idx, tipo){
+  if(!window._reservadaMovs) return;
+  window._reservadaMovs[conta][idx].tipo=tipo;
+  renderReservada();
+}
+
+function reservadaLoadExtrato(event, conta){
+  const file=event.target.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      const movs=[];
+      let headerFound=false;
+      for(const row of rows){
+        const cells=row.map(c=>String(c||'').trim());
+        /* Detecta linha de cabeçalho */
+        if(!headerFound){
+          if(cells.some(c=>c.includes('Data Mov')||c.includes('Descrição'))){
+            headerFound=true;
+          }
+          continue;
+        }
+        /* Linha de dados: col0=data, col2=desc, col3=valor */
+        const data=cells[0], desc=cells[2], valStr=String(cells[3]||'').replace(',','.');
+        const valor=parseFloat(valStr);
+        if(data && desc && !isNaN(valor)){
+          /* Classificação automática por palavras-chave */
+          let tipo='';
+          const dl=desc.toLowerCase();
+          if(/trf.*cr|trf sepa.*de |receb/i.test(desc)) tipo='Honorários';
+          else if(/provis/i.test(desc)) tipo='Provisão';
+          else if(/pagserv|pagamento ao estado|instituto reg|not[aá]r/i.test(desc)) tipo='Despesa Cliente';
+          else if(/manutencao|manutençã|imposto de selo|comiss/i.test(desc)) tipo='Pagamento Escritório';
+          movs.push({data,desc,valor,tipo});
+        }
+      }
+      if(!window._reservadaMovs) window._reservadaMovs={clientes:[],consulting:[],cvsp:[]};
+      window._reservadaMovs[conta]=movs;
+      window._reservadaConta=conta;
+      setStatus(`Extrato carregado: ${movs.length} movimentos (${conta})`);
+      renderReservada();
+    }catch(err){
+      setStatus('Erro ao ler extrato: '+err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function reservadaExport(conta){
+  const movs=(window._reservadaMovs||{})[conta]||[];
+  if(!movs.length) return;
+  const ws=XLSX.utils.json_to_sheet(movs.map(m=>({Data:m.data,Descrição:m.desc,Valor:m.valor,Tipo:m.tipo||''})));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Movimentos');
+  XLSX.writeFile(wb,`BPI_${conta}_classificado.xlsx`);
+}
+
+/* ══════════════════ MÓDULO PAGAMENTOS A PAGAR ══════════════════ */
+/* Dados em memória — privados, não vão para GitHub */
+if(!window._pagamentos) window._pagamentos = [];
+
+const PAG_TIPOS = ['Fatura/Fornecedor','Pagamento ao Estado','Honorários a pagar','Outro'];
+const PAG_CONTAS = ['BPI 001 Clientes','BPI 002 CVSP Advogados','Santander Consulting'];
+
+function pagNovo(){
+  const id = Date.now();
+  window._pagamentos.push({
+    id, descricao:'', entidade:'', valor:'', ref:'', iban:'',
+    data_limite:'', tipo:'Fatura/Fornecedor', conta:'BPI 002 CVSP Advogados',
+    pago:false, data_pago:'', anexo_nome:'', anexo_data:'', notas:''
+  });
+  renderReservada();
+  // Foca no campo de descrição do novo pagamento
+  setTimeout(()=>{
+    const el=document.getElementById('pag_desc_'+id);
+    if(el) el.focus();
+  },100);
+}
+
+function pagUpdate(id, field, value){
+  const p=window._pagamentos.find(p=>p.id==id);
+  if(p){ p[field]=value; }
+}
+
+function pagMarcarPago(id){
+  const p=window._pagamentos.find(p=>p.id==id);
+  if(!p) return;
+  p.pago=!p.pago;
+  p.data_pago=p.pago?new Date().toLocaleDateString('pt-PT'):'';
+  renderReservada();
+}
+
+function pagApagar(id){
+  if(!confirm('Apagar este pagamento?')) return;
+  window._pagamentos=window._pagamentos.filter(p=>p.id!=id);
+  renderReservada();
+}
+
+function pagAnexo(id, event){
+  const file=event.target.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const p=window._pagamentos.find(p=>p.id==id);
+    if(p){
+      p.anexo_nome=file.name;
+      p.anexo_data=e.target.result; // base64
+      renderReservada();
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function pagVerAnexo(id){
+  const p=window._pagamentos.find(p=>p.id==id);
+  if(!p||!p.anexo_data) return;
+  const win=window.open();
+  win.document.write('<iframe src="'+p.anexo_data+'" style="width:100%;height:100%;border:none"></iframe>');
+}
+
+function pagExportExcel(){
+  const rows=window._pagamentos.map(p=>({
+    Entidade:p.entidade, Descrição:p.descricao, Tipo:p.tipo,
+    Valor:p.valor, Referência:p.ref, IBAN:p.iban,
+    'Data Limite':p.data_limite, Conta:p.conta,
+    Pago:p.pago?'Sim':'Não', 'Data Pago':p.data_pago,
+    Notas:p.notas, Anexo:p.anexo_nome
+  }));
+  const ws=XLSX.utils.json_to_sheet(rows);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Pagamentos');
+  XLSX.writeFile(wb,'CVSP_Pagamentos.xlsx');
+}
+
+function renderPagamentos(){
+  const pags=window._pagamentos||[];
+  const pendentes=pags.filter(p=>!p.pago);
+  const pagos=pags.filter(p=>p.pago);
+  const totalPendente=pendentes.reduce((s,p)=>s+(parseFloat(String(p.valor).replace(',','.'))||0),0);
+
+  function pagCard(p){
+    const vencido=p.data_limite&&!p.pago&&new Date(p.data_limite.split('/').reverse().join('-'))<new Date();
+    const borderColor=p.pago?'var(--green)':vencido?'var(--red)':'var(--border)';
+    return `<div style="background:var(--panel);border:1px solid ${borderColor};border-radius:10px;padding:14px 16px;margin-bottom:10px">
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <input id="pag_desc_${p.id}" placeholder="Descrição / fatura nº" value="${esc(p.descricao)}"
+          onchange="pagUpdate(${p.id},'descricao',this.value)"
+          style="flex:2;min-width:160px;background:var(--panel-2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:7px 10px;font-size:.8rem">
+        <input placeholder="Entidade" value="${esc(p.entidade)}"
+          onchange="pagUpdate(${p.id},'entidade',this.value)"
+          style="flex:2;min-width:120px;background:var(--panel-2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:7px 10px;font-size:.8rem">
+        <input placeholder="Valor (€)" value="${esc(p.valor)}"
+          onchange="pagUpdate(${p.id},'valor',this.value)"
+          style="width:100px;background:var(--panel-2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:7px 10px;font-size:.8rem;text-align:right">
+        <input type="date" value="${p.data_limite?p.data_limite.split('/').reverse().join('-'):''}"
+          onchange="pagUpdate(${p.id},'data_limite',this.value?new Date(this.value).toLocaleDateString('pt-PT'):'')"
+          style="width:130px;background:var(--panel-2);border:1px solid ${vencido&&!p.pago?'var(--red)':'var(--border)'};border-radius:7px;color:var(--text);padding:7px 10px;font-size:.8rem"
+          title="Data limite de pagamento">
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <input placeholder="Referência MB / Entidade / Subentidade" value="${esc(p.ref)}"
+          onchange="pagUpdate(${p.id},'ref',this.value)"
+          style="flex:3;min-width:180px;background:var(--panel-2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:7px 10px;font-size:.78rem;font-family:monospace">
+        <input placeholder="IBAN (se transferência)" value="${esc(p.iban)}"
+          onchange="pagUpdate(${p.id},'iban',this.value)"
+          style="flex:3;min-width:180px;background:var(--panel-2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:7px 10px;font-size:.78rem;font-family:monospace">
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <select onchange="pagUpdate(${p.id},'tipo',this.value)"
+          style="background:var(--panel-2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:6px 10px;font-size:.75rem;cursor:pointer">
+          ${PAG_TIPOS.map(t=>`<option ${p.tipo===t?'selected':''}>${t}</option>`).join('')}
+        </select>
+        <select onchange="pagUpdate(${p.id},'conta',this.value)"
+          style="background:var(--panel-2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:6px 10px;font-size:.75rem;cursor:pointer">
+          ${PAG_CONTAS.map(c=>`<option ${p.conta===c?'selected':''}>${c}</option>`).join('')}
+        </select>
+        <input placeholder="Notas" value="${esc(p.notas)}"
+          onchange="pagUpdate(${p.id},'notas',this.value)"
+          style="flex:1;min-width:100px;background:var(--panel-2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:6px 10px;font-size:.75rem">
+        <div style="display:flex;gap:6px;margin-left:auto">
+          ${p.anexo_nome
+            ? `<button onclick="pagVerAnexo(${p.id})" title="${esc(p.anexo_nome)}"
+                style="background:rgba(91,155,213,.15);border:1px solid rgba(91,155,213,.4);border-radius:7px;padding:5px 10px;font-size:.72rem;color:var(--accent-2);cursor:pointer">📎 ${esc(p.anexo_nome.slice(0,18)+(p.anexo_nome.length>18?'…':''))}</button>`
+            : `<label style="cursor:pointer"><input type="file" accept=".pdf,.jpg,.png" style="display:none" onchange="pagAnexo(${p.id},event)">
+                <span style="background:var(--panel-2);border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-size:.72rem;color:var(--muted);cursor:pointer">📎 Anexar</span></label>`}
+          <button onclick="pagMarcarPago(${p.id})"
+            style="background:${p.pago?'rgba(70,184,122,.2)':'rgba(201,162,75,.15)'};border:1px solid ${p.pago?'var(--green)':'var(--accent)'};border-radius:7px;padding:5px 12px;font-size:.75rem;font-weight:700;color:${p.pago?'var(--green)':'var(--accent)'};cursor:pointer">
+            ${p.pago?'✓ Pago':'Marcar pago'}</button>
+          ${p.pago?`<span style="font-size:.68rem;color:var(--muted);padding:5px 0">${p.data_pago}</span>`:''}
+          <button onclick="pagApagar(${p.id})"
+            style="background:transparent;border:1px solid rgba(224,106,106,.3);border-radius:7px;padding:5px 8px;font-size:.72rem;color:var(--red);cursor:pointer">✕</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  return `<div class="reservada-section">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <div class="reservada-section-title" style="margin:0">💳 Pagamentos a pagar</div>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        ${pags.length?`<button onclick="pagExportExcel()" style="background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:.72rem;color:var(--muted);cursor:pointer">⬇ Excel</button>`:''}
+        <button onclick="pagNovo()"
+          style="background:var(--accent);color:#000;border:none;border-radius:8px;padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer">+ Novo pagamento</button>
+      </div>
+    </div>
+    ${pendentes.length?`
+    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <div class="reservada-kpi" style="flex:1;min-width:140px"><div class="reservada-kpi-label">Pendentes</div><div class="reservada-kpi-val" style="color:var(--amber)">${pendentes.length}</div></div>
+      <div class="reservada-kpi" style="flex:1;min-width:140px"><div class="reservada-kpi-label">Total a pagar</div><div class="reservada-kpi-val" style="color:var(--red);font-size:.95rem">${totalPendente.toLocaleString('pt-PT',{minimumFractionDigits:2})} €</div></div>
+      <div class="reservada-kpi" style="flex:1;min-width:140px"><div class="reservada-kpi-label">Pagos este mês</div><div class="reservada-kpi-val" style="color:var(--green)">${pagos.length}</div></div>
+    </div>`:''}
+    ${pendentes.length?pendentes.map(pagCard).join(''):'<div class="reservada-coming"><div style="font-size:1.5rem;margin-bottom:8px">✅</div>Sem pagamentos pendentes.</div>'}
+    ${pagos.length?`
+    <details style="margin-top:12px">
+      <summary style="font-size:.72rem;color:var(--muted);cursor:pointer;padding:6px 0">Pagamentos concluídos (${pagos.length})</summary>
+      <div style="margin-top:8px;opacity:.7">${pagos.map(pagCard).join('')}</div>
+    </details>`:''}
+  </div>`;
+}
+
+
+/* Teclado físico para PIN reservada */
+document.addEventListener('keydown',e=>{
+  if(state.tab!=='__reservada__'||reservadaUnlocked) return;
+  if(e.key>='0'&&e.key<='9') reservadaDigit(e.key);
+  else if(e.key==='Backspace') reservadaDel();
+});
 
 /* =====================================================================
    MÓDULO PIN — PIN fixo 3003 (hash SHA-256 embutido)
