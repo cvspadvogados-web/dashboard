@@ -524,7 +524,7 @@ const TAB_LABELS={'__home__':'🏠 Início','1000 ':'Clientes 1000','9000':'Pote
 const palette=['#c9a24b','#5b9bd5','#46b87a','#e0b341','#d57b9b','#9b8bd5','#e0925a','#5ac0b0','#c96a6a','#7ab85a'];
 const $=id=>document.getElementById(id);
 /* Versão do painel — atualiza aqui sempre que fizeres alterações */
-const APP_VERSION='4.0';
+const APP_VERSION='4.1';
 const APP_DATE='18/06/2026';
 (function(){const el=$('version');if(el)el.innerHTML=`<b>v${APP_VERSION}</b>Criado em ${APP_DATE}`;})();
 /* ===== PER-SOURCE PARSERS ===== */
@@ -3130,8 +3130,11 @@ function renderReservada(){
         style="padding:8px 16px;border-radius:8px;border:1px solid ${reservadaView==='extratos'?'var(--accent)':'var(--border)'};background:${reservadaView==='extratos'?'rgba(201,162,75,.15)':'var(--panel-2)'};color:${reservadaView==='extratos'?'var(--accent)':'var(--muted)'};cursor:pointer;font-size:.8rem;font-weight:600">📊 Extratos</button>
       <button onclick="window._reservadaView='pagamentos';renderReservada()"
         style="padding:8px 16px;border-radius:8px;border:1px solid ${reservadaView==='pagamentos'?'var(--accent)':'var(--border)'};background:${reservadaView==='pagamentos'?'rgba(201,162,75,.15)':'var(--panel-2)'};color:${reservadaView==='pagamentos'?'var(--accent)':'var(--muted)'};cursor:pointer;font-size:.8rem;font-weight:600">💳 Pagamentos a pagar ${(window._pagamentos||[]).filter(p=>!p.pago).length?`<span style="background:var(--red);color:#fff;border-radius:10px;padding:1px 7px;font-size:.68rem;margin-left:4px">${(window._pagamentos||[]).filter(p=>!p.pago).length}</span>`:''}</button>
+      <button onclick="window._reservadaView='reconciliacao';renderReservada()"
+        style="padding:8px 16px;border-radius:8px;border:1px solid ${reservadaView==='reconciliacao'?'var(--accent)':'var(--border)'};background:${reservadaView==='reconciliacao'?'rgba(201,162,75,.15)':'var(--panel-2)'};color:${reservadaView==='reconciliacao'?'var(--accent)':'var(--muted)'};cursor:pointer;font-size:.8rem;font-weight:600">🔗 Reconciliação</button>
     </div>
-    ${reservadaView==='pagamentos'?renderPagamentos():''} 
+    ${reservadaView==='pagamentos'?renderPagamentos():''}
+    ${reservadaView==='reconciliacao'?renderReconciliacao():''}
     ${reservadaView!=='extratos'?'':''} 
     <!-- Selector de conta (só em extratos) -->
     ${reservadaView!=='extratos'?'':`<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
@@ -3141,7 +3144,7 @@ function renderReservada(){
     </div>`}
 
     <!-- Extrato da conta activa -->
-    <div class="reservada-section">
+    ${reservadaView!=='extratos'?'':`<div class="reservada-section">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
         <div class="reservada-section-title" style="margin:0">${contaAtiva==='clientes'?'👥 BPI Clientes (001)':contaAtiva==='consulting'?'💼 Santander Consulting':'⚖ BPI CVSP (002)'}</div>
         <label style="margin-left:auto;cursor:pointer">
@@ -3152,7 +3155,7 @@ function renderReservada(){
       </div>
       ${movimentos[contaAtiva].length?`<div class="reservada-kpi-grid" style="margin-bottom:14px">${kpiBar(movimentos[contaAtiva])}</div>`:''}
       <div style="overflow-x:auto">${movTable(movimentos[contaAtiva])}</div>
-    </div>
+    </div>`}
   </div>`;
 }
 
@@ -3433,6 +3436,176 @@ function renderPagamentos(){
       <summary style="font-size:.72rem;color:var(--muted);cursor:pointer;padding:6px 0">Pagamentos concluídos (${pagos.length})</summary>
       <div style="margin-top:8px;opacity:.7">${pagos.map(pagCard).join('')}</div>
     </details>`:''}
+  </div>`;
+}
+
+
+/* ══════════════════ RECONCILIAÇÃO ══════════════════ */
+if(!window._reconcDocs) window._reconcDocs = [];       // documentos de contabilidade (crédito/débito)
+if(window._reconcMargem===undefined) window._reconcMargem = 7; // margem de dias
+
+function reconcImportar(event){
+  const file=event.target.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      let novos=0;
+      const existe=new Set((window._reconcDocs||[]).map(d=>d._ficheiro+'|'+d.valor+'|'+d.data));
+      wb.SheetNames.forEach(sn=>{
+        const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{defval:''});
+        rows.forEach(r=>{
+          const g=k=>String(r[k]==null?'':r[k]).trim();
+          const valor=parseFloat(String(g('Valor')).replace(',','.'));
+          if(isNaN(valor)) return;
+          const data=g('Data');
+          const ficheiro=g('Ficheiro');
+          const chave=ficheiro+'|'+valor+'|'+data;
+          if(existe.has(chave)) return;
+          window._reconcDocs.push({
+            tipo:g('Tipo'), data, entidade:g('Entidade'),
+            documento:g('Documento'), valor, notas:g('Notas'),
+            _ficheiro:ficheiro
+          });
+          existe.add(chave); novos++;
+        });
+      });
+      setStatus(`Importados ${novos} documento(s) de contabilidade`);
+      renderReservada();
+    }catch(err){ setStatus('Erro ao importar contabilidade: '+err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+  event.target.value='';
+}
+
+function reconcLimpar(){
+  if(!confirm('Limpar todos os documentos de contabilidade importados?')) return;
+  window._reconcDocs=[];
+  renderReservada();
+}
+
+function reconcParseData(s){
+  // dd/mm/aaaa  ou dd-mm-aaaa  ou dd-mm (sem ano → usa ano corrente)
+  s=String(s||'').trim();
+  let m=s.match(/(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
+  if(m) return new Date(+m[3],+m[2]-1,+m[1]);
+  m=s.match(/(\d{2})[\/\-](\d{2})/);
+  if(m) return new Date(new Date().getFullYear(),+m[2]-1,+m[1]);
+  return null;
+}
+
+function reconcCruzar(){
+  // Junta todos os movimentos dos extratos carregados
+  const mv=window._reservadaMovs||{clientes:[],consulting:[],cvsp:[]};
+  const movimentos=[];
+  Object.entries(mv).forEach(([conta,arr])=>{
+    (arr||[]).forEach((m,i)=>movimentos.push({...m, _conta:conta, _idx:i, _usado:false}));
+  });
+  const margem=window._reconcMargem*24*3600*1000;
+  const docs=(window._reconcDocs||[]).map(d=>({...d}));
+  // Para cada documento, procura um movimento por valor (com sinal certo) e data próxima
+  docs.forEach(d=>{
+    const dData=reconcParseData(d.data);
+    // Crédito = entrada (valor>0 no banco); Débito = saída (valor<0 no banco)
+    const candidatos=movimentos.filter(m=>{
+      if(m._usado) return false;
+      const mesmoValor=Math.abs(Math.abs(m.valor)-Math.abs(d.valor))<0.01;
+      if(!mesmoValor) return false;
+      const sinalOk = d.tipo==='Crédito' ? m.valor>0 : m.valor<0;
+      if(!sinalOk) return false;
+      if(!dData) return true; // sem data no doc → casa só por valor
+      const mData=reconcParseData(m.data);
+      if(!mData) return true;
+      return Math.abs(mData-dData)<=margem;
+    });
+    if(candidatos.length===1){
+      d._match=candidatos[0]; candidatos[0]._usado=true; d._estado='ok';
+    } else if(candidatos.length>1){
+      d._match=null; d._estado='duvida'; d._cands=candidatos.length;
+    } else {
+      d._match=null; d._estado='semmatch';
+    }
+  });
+  // Movimentos que sobraram (sem documento)
+  const movSemDoc=movimentos.filter(m=>!m._usado);
+  return {docs, movSemDoc, totalMov:movimentos.length};
+}
+
+function reconcSetMargem(v){ window._reconcMargem=parseInt(v)||7; renderReservada(); }
+
+function renderReconciliacao(){
+  const temDocs=(window._reconcDocs||[]).length>0;
+  const temMovs=Object.values(window._reservadaMovs||{}).some(a=>(a||[]).length>0);
+
+  let corpo='';
+  if(!temDocs){
+    corpo=`<div class="reservada-coming"><div style="font-size:1.5rem;margin-bottom:8px">📂</div>
+      Importa o Excel de contabilidade (gerado pelo creditos_debitos_converter) para começar.</div>`;
+  } else if(!temMovs){
+    corpo=`<div class="reservada-coming"><div style="font-size:1.5rem;margin-bottom:8px">⚠</div>
+      Carrega primeiro os extratos (aba 📊 Extratos) para poder cruzar.</div>`;
+  } else {
+    const {docs, movSemDoc} = reconcCruzar();
+    const ok=docs.filter(d=>d._estado==='ok');
+    const duvida=docs.filter(d=>d._estado==='duvida');
+    const semmatch=docs.filter(d=>d._estado==='semmatch');
+    const fmt=v=>(v>=0?'+':'')+Number(v).toLocaleString('pt-PT',{minimumFractionDigits:2})+' €';
+    const cor=e=>e==='ok'?'var(--green)':e==='duvida'?'var(--amber)':'var(--red)';
+    const ic=e=>e==='ok'?'✓':e==='duvida'?'?':'✗';
+
+    function docRow(d){
+      return `<tr style="border-bottom:1px solid #1a1f2e">
+        <td style="padding:6px 8px;color:${cor(d._estado)};font-weight:700;text-align:center">${ic(d._estado)}</td>
+        <td style="padding:6px 8px;white-space:nowrap;color:var(--muted)">${esc(d.data)}</td>
+        <td style="padding:6px 8px"><span style="color:${d.tipo==='Crédito'?'var(--green)':'var(--red)'}">${d.tipo==='Crédito'?'▲':'▼'}</span> ${esc(d.entidade)}</td>
+        <td style="padding:6px 8px;color:var(--muted);font-size:.7rem">${esc(d.documento||'')}</td>
+        <td style="padding:6px 8px;text-align:right;font-weight:600">${fmt(d.valor)}</td>
+        <td style="padding:6px 8px;font-size:.7rem;color:var(--muted)">${d._estado==='ok'?('↔ '+esc(d._match.data)+' · '+esc((d._match.desc||'').slice(0,28))):d._estado==='duvida'?(d._cands+' possíveis'):'sem movimento'}</td>
+      </tr>`;
+    }
+
+    corpo=`
+    <div class="reservada-kpi-grid" style="margin-bottom:14px">
+      <div class="reservada-kpi"><div class="reservada-kpi-label">Reconciliados</div><div class="reservada-kpi-val" style="color:var(--green)">${ok.length}</div></div>
+      <div class="reservada-kpi"><div class="reservada-kpi-label">A confirmar</div><div class="reservada-kpi-val" style="color:var(--amber)">${duvida.length}</div></div>
+      <div class="reservada-kpi"><div class="reservada-kpi-label">Sem movimento</div><div class="reservada-kpi-val" style="color:var(--red)">${semmatch.length}</div></div>
+      <div class="reservada-kpi"><div class="reservada-kpi-label">Mov. sem doc.</div><div class="reservada-kpi-val" style="color:var(--accent-2)">${movSemDoc.length}</div></div>
+    </div>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.78rem">
+      <thead><tr style="border-bottom:1px solid var(--border)">
+        <th style="padding:6px 8px"></th>
+        <th style="text-align:left;padding:6px 8px;color:var(--muted)">Data</th>
+        <th style="text-align:left;padding:6px 8px;color:var(--muted)">Entidade</th>
+        <th style="text-align:left;padding:6px 8px;color:var(--muted)">Doc.</th>
+        <th style="text-align:right;padding:6px 8px;color:var(--muted)">Valor</th>
+        <th style="text-align:left;padding:6px 8px;color:var(--muted)">Movimento bancário</th>
+      </tr></thead>
+      <tbody>
+        ${semmatch.map(docRow).join('')}
+        ${duvida.map(docRow).join('')}
+        ${ok.map(docRow).join('')}
+      </tbody>
+    </table></div>`;
+  }
+
+  return `<div class="reservada-section">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <div class="reservada-section-title" style="margin:0">🔗 Reconciliação bancária</div>
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+        <label style="font-size:.72rem;color:var(--muted)">Margem
+          <select onchange="reconcSetMargem(this.value)" style="background:var(--panel-2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:.72rem;padding:3px 6px;margin-left:4px">
+            <option value="3" ${window._reconcMargem===3?'selected':''}>±3 dias</option>
+            <option value="7" ${window._reconcMargem===7?'selected':''}>±7 dias</option>
+            <option value="15" ${window._reconcMargem===15?'selected':''}>±15 dias</option>
+          </select>
+        </label>
+        <input type="file" id="reconcImportInput" accept=".xlsx,.xls" style="display:none" onchange="reconcImportar(event)">
+        <button onclick="document.getElementById('reconcImportInput').click()" style="background:var(--panel-2);border:1px solid var(--accent);border-radius:8px;padding:6px 10px;font-size:.72rem;color:var(--accent);cursor:pointer">⬆ Importar contabilidade</button>
+        ${temDocs?`<button onclick="reconcLimpar()" style="background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:.72rem;color:var(--muted);cursor:pointer">Limpar</button>`:''}
+      </div>
+    </div>
+    ${corpo}
   </div>`;
 }
 
