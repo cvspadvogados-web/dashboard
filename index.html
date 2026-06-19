@@ -524,7 +524,7 @@ const TAB_LABELS={'__home__':'🏠 Início','1000 ':'Clientes 1000','9000':'Pote
 const palette=['#c9a24b','#5b9bd5','#46b87a','#e0b341','#d57b9b','#9b8bd5','#e0925a','#5ac0b0','#c96a6a','#7ab85a'];
 const $=id=>document.getElementById(id);
 /* Versão do painel — atualiza aqui sempre que fizeres alterações */
-const APP_VERSION='4.1';
+const APP_VERSION='4.2';
 const APP_DATE='18/06/2026';
 (function(){const el=$('version');if(el)el.innerHTML=`<b>v${APP_VERSION}</b>Criado em ${APP_DATE}`;})();
 /* ===== PER-SOURCE PARSERS ===== */
@@ -3072,7 +3072,7 @@ function renderReservada(){
   }
 
   function movTable(movs){
-    if(!movs.length) return `<div class="reservada-coming"><div style="font-size:1.5rem;margin-bottom:8px">📂</div>Carrega um extrato BPI para começar.</div>`;
+    if(!movs.length) return `<div class="reservada-coming"><div style="font-size:1.5rem;margin-bottom:8px">📂</div>Carrega um extrato para começar.</div>`;
     return `<table style="width:100%;border-collapse:collapse;font-size:.78rem">
       <thead><tr style="border-bottom:1px solid var(--border)">
         <th style="text-align:left;padding:6px 8px;color:var(--muted);font-weight:600">Data</th>
@@ -3139,17 +3139,17 @@ function renderReservada(){
     <!-- Selector de conta (só em extratos) -->
     ${reservadaView!=='extratos'?'':`<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
       ${tabBtn('clientes','👥 BPI Clientes (001)')}
-      ${tabBtn('cvsp','⚖ BPI CVSP (002)')}
+      ${tabBtn('cvsp','⚖ Santander CVSP')}
       ${tabBtn('consulting','💼 Santander Consulting')}
     </div>`}
 
     <!-- Extrato da conta activa -->
     ${reservadaView!=='extratos'?'':`<div class="reservada-section">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-        <div class="reservada-section-title" style="margin:0">${contaAtiva==='clientes'?'👥 BPI Clientes (001)':contaAtiva==='consulting'?'💼 Santander Consulting':'⚖ BPI CVSP (002)'}</div>
+        <div class="reservada-section-title" style="margin:0">${contaAtiva==='clientes'?'👥 BPI Clientes (001)':contaAtiva==='consulting'?'💼 Santander Consulting':'⚖ Santander CVSP'}</div>
         <label style="margin-left:auto;cursor:pointer">
           <input type="file" accept=".xlsx,.xls" style="display:none" onchange="reservadaLoadExtrato(event,'${contaAtiva}')">
-          <span style="background:var(--accent);color:#000;padding:6px 12px;border-radius:8px;font-size:.75rem;font-weight:700;cursor:pointer">📂 Carregar extrato BPI</span>
+          <span style="background:var(--accent);color:#000;padding:6px 12px;border-radius:8px;font-size:.75rem;font-weight:700;cursor:pointer">📂 Carregar extrato</span>
         </label>
         ${movimentos[contaAtiva].length?`<button onclick="reservadaExport('${contaAtiva}')" style="background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:.72rem;color:var(--muted);cursor:pointer">⬇ Excel</button>`:''}
       </div>
