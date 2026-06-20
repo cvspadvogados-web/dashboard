@@ -524,7 +524,7 @@ const TAB_LABELS={'__home__':'🏠 Início','1000 ':'Clientes 1000','9000':'Pote
 const palette=['#c9a24b','#5b9bd5','#46b87a','#e0b341','#d57b9b','#9b8bd5','#e0925a','#5ac0b0','#c96a6a','#7ab85a'];
 const $=id=>document.getElementById(id);
 /* Versão do painel — atualiza aqui sempre que fizeres alterações */
-const APP_VERSION='4.2';
+const APP_VERSION='4.3';
 const APP_DATE='18/06/2026';
 (function(){const el=$('version');if(el)el.innerHTML=`<b>v${APP_VERSION}</b>Criado em ${APP_DATE}`;})();
 /* ===== PER-SOURCE PARSERS ===== */
@@ -2132,7 +2132,28 @@ function renderHonorarios(){
    Trabalha sobre as colunas já transformadas por parseIRS:
    Estado (texto), Progresso % (0-100), Anexos ("Cat. A/B · Anexo J, L"), Faturado, Pago, Mod.49, Validado. */
 let irsState={phase:'__all__',exec:'__all__',modelo:'__all__',flags:{},onlySub:false};
-function irsPct(r){const p=parseFloat(r['Progresso %']);if(!isNaN(p))return p;const e=String(r['Estado']||'').toLowerCase();if(e.includes('conclu'))return 100;if(e.includes('quase'))return 90;if(e.includes('curso'))return 60;if(e.includes('inici')&&!e.includes('por'))return 20;return 0;}
+function irsPct(r){
+  // 1) Progresso % já calculado no parse
+  let p=parseFloat(r['Progresso %']);
+  if(!isNaN(p))return p;
+  // 2) Estado em número/texto: "1", "0.99", "100%", "99%", "0,99"
+  let raw=r['Estado'];
+  if(raw!=null){
+    let s=String(raw).trim().replace('%','').replace(',','.');
+    let n=parseFloat(s);
+    if(!isNaN(n)){
+      // fração (0–1) → multiplica; já em escala 0–100 → usa direto
+      return n<=1 ? Math.round(n*100) : Math.round(n);
+    }
+    // 3) Estado como rótulo de texto
+    const e=s.toLowerCase();
+    if(e.includes('conclu'))return 100;
+    if(e.includes('quase'))return 90;
+    if(e.includes('curso'))return 60;
+    if(e.includes('inici')&&!e.includes('por'))return 20;
+  }
+  return 0;
+}
 function irsPhase(r){const p=irsPct(r);if(p>=100)return'Concluído';if(p>=90)return'Quase concluído';if(p>=50)return'Em curso';if(p>0)return'Iniciado';return'Por iniciar';}
 const IRS_PHASE_ORDER=['Concluído','Quase concluído','Em curso','Iniciado','Por iniciar'];
 function irsAnexoSet(r){const s=String(r['Anexos']||'').toUpperCase();const out=new Set();['A','B','F','G'].forEach(c=>{if(new RegExp('CAT\\.?[^·]*\\b'+c+'\\b').test(s))out.add('CAT '+c);});if(/ANEXO[^·]*\bJ\b/.test(s))out.add('Anexo J');if(/ANEXO[^·]*\bL\b/.test(s))out.add('Anexo L');return out;}
@@ -2177,9 +2198,13 @@ function renderIRS(){
   const aPagar=comMont.filter(n=>n>0);
   const mediaPagar=aPagar.length?Math.round(aPagar.reduce((a,b)=>a+b,0)/aPagar.length):null;
   const r=irsRows();
+  // ---- diagnóstico: contagem por faixa de estado (ajuda a confirmar que os dados estão atualizados) ----
+  let _c100=0,_c90=0,_c50=0,_c1=0,_c0=0;
+  all.forEach(x=>{const p=irsPct(x);if(p>=100)_c100++;else if(p>=90)_c90++;else if(p>=50)_c50++;else if(p>0)_c1++;else _c0++;});
   // ---- progress bar ----
   let html=`<div class="irs-prog"><div class="irs-prog-h"><h3>Progresso de submissões</h3><span>${entregues} de ${tot} IRS submetidos (Estado a 100%)</span></div>
-    <div class="irs-bar"><span style="width:${pctEntregues}%">${pctEntregues}%</span></div></div>`;
+    <div class="irs-bar"><span style="width:${pctEntregues}%">${pctEntregues}%</span></div>
+    <div style="font-size:.72rem;color:var(--muted);margin-top:8px">Lidos do Excel: <b>${tot}</b> registos · a 100%: <b>${_c100}</b> · 90-99%: ${_c90} · 50-89%: ${_c50} · 1-49%: ${_c1} · 0%: ${_c0}</div></div>`;
   // ---- KPIs ----
   html+=`<div class="panel-top"><div class="section-title">Indicadores IRS</div><div class="kpis">
     ${kpi('IRS na lista',r.length,'de '+tot+' total')}
