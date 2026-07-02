@@ -524,7 +524,7 @@ const TAB_LABELS={'__home__':'🏠 Início','1000 ':'Clientes 1000','9000':'Pote
 const palette=['#c9a24b','#5b9bd5','#46b87a','#e0b341','#d57b9b','#9b8bd5','#e0925a','#5ac0b0','#c96a6a','#7ab85a'];
 const $=id=>document.getElementById(id);
 /* Versão do painel — atualiza aqui sempre que fizeres alterações */
-const APP_VERSION='4.3';
+const APP_VERSION='4.4';
 const APP_DATE='18/06/2026';
 (function(){const el=$('version');if(el)el.innerHTML=`<b>v${APP_VERSION}</b>Criado em ${APP_DATE}`;})();
 /* ===== PER-SOURCE PARSERS ===== */
@@ -625,27 +625,51 @@ function parseIFICI(wb){
 
 /* ---- IRS (CVSP_-_IRS_2025_1_1.xlsx, sheet "IRS 2025") ---- */
 function parseIRS(wb){
-  const arr=_sheetAOA(wb,'IRS 2025'); if(!arr) return {};
-  const A=(r,c)=>arr[r]?arr[r][c-1]:null; // 1-indexed col
-  const estadoLabel=k=>{if(k==null||String(k).trim()==='')return null;const p=parseFloat(k);if(isNaN(p))return _fmt(k);if(p>=1)return'Concluído';if(p>=0.9)return'Quase concluído';if(p>=0.5)return'Em curso';if(p>0)return'Iniciado';return'Por iniciar';};
-  const pct=k=>{const p=parseFloat(k);return isNaN(p)?null:Math.round(p*100);};
+  const arr=_sheetAOA(wb,'IRS 2025'); if(!arr||!arr.length) return {};
+  // Mapa de cabeçalhos → índice de coluna (1-indexed), lido da linha 0.
+  // Torna o parse imune a inserção/reordenação de colunas.
+  const hdrRow=arr[0]||[];
+  const colOf={};
+  hdrRow.forEach((h,i)=>{ if(h!=null){ const k=String(h).trim().toUpperCase(); if(!(k in colOf)) colOf[k]=i+1; } });
+  // Busca por nome (com alternativas); devolve índice 1-based ou null
+  const idx=(...names)=>{ for(const n of names){ const k=String(n).trim().toUpperCase(); if(k in colOf) return colOf[k]; } return null; };
+  const A=(r,c)=>(c&&arr[r])?arr[r][c-1]:null; // 1-indexed col
+  const AN=(r,...names)=>A(r, idx(...names)); // por nome
+
+  const cEstado=idx('Estado');
+  const cCliente=idx('Cliente');
+  const cRef=idx('Ref');
+  const cModel=idx('MODEL','Modelo');
+  const cNIF=idx('NIF');
+  const cRFP=idx('RESIDENCIAL FISCAL PARCIAL','Residência fiscal parcial');
+  const cExec=idx('Executante');
+  const cSubmet=idx('SUBMETIDO','Submetido');
+  const cMod49=idx('MOD 49','Mod.49');
+  const cDataMod49=idx('DATA MOD 49','Data Mod.49');
+  const cDocs=idx('DOCS SUPORTE','Docs suporte');
+  const cNotas=idx('NOTAS','Notas');
+
+  const estadoLabel=k=>{if(k==null||String(k).trim()==='')return null;const p=parseFloat(String(k).replace(',','.'));if(isNaN(p))return _fmt(k);if(p>=1)return'Concluído';if(p>=0.9)return'Quase concluído';if(p>=0.5)return'Em curso';if(p>0)return'Iniciado';return'Por iniciar';};
+  const pct=k=>{if(k==null||String(k).trim()==='')return null;const p=parseFloat(String(k).replace(',','.'));if(isNaN(p))return null;return p<=1?Math.round(p*100):Math.round(p);};
+  // anexos/conjuges: mantêm posição relativa (colunas de detalhe pouco mexidas); protegido por A()
   const anexos=r=>{const cat=[];[[35,'A'],[36,'B'],[37,'F'],[40,'G']].forEach(([c,l])=>{if(String(A(r,c)||'').trim())cat.push(l);});
     const ex=[];if(String(A(r,39)||'').trim())ex.push('J');if(String(A(r,41)||'').trim())ex.push('L');if(String(A(r,38)||'').trim())ex.push('J (só contas)');
     const parts=[];if(cat.length)parts.push('Cat. '+cat.join('/'));if(ex.length)parts.push('Anexo '+ex.join(', '));return parts.join(' · ')||null;};
   const conj=r=>{const o=[];[[16,17],[19,20],[21,22]].forEach(([nc,fc])=>{const nm=_fmt(A(r,nc)),nf=_fmt(A(r,fc));if(nm||nf)o.push((nm||'')+(nf?' ('+nf+')':''));});return o.join(' ; ')||null;};
   const rows=[];
   for(let r=1;r<arr.length;r++){
-    const cli=_fmt(A(r,2)); if(!cli) continue;
+    const cli=_fmt(A(r,cCliente)); if(!cli) continue;
+    const estRaw=A(r,cEstado);
     rows.push({
-      'Ref':_fmt(A(r,1)),'Cliente':cli,'Modelo':_fmt(A(r,3)),'Cônjuge(s)/SP':conj(r),
-      'NIF':_fmt(A(r,6)),'Residência fiscal parcial':_fmt(A(r,9)),'Executante':_fmt(A(r,10)),
-      'Estado':estadoLabel(A(r,11)),'Progresso %':pct(A(r,11)),'Anexos':anexos(r),
-      'Submetido':_fmt(A(r,13)),'Mod.49':_fmt(A(r,14)),'Data Mod.49':_fmt(A(r,15)),
+      'Ref':_fmt(A(r,cRef)),'Cliente':cli,'Modelo':_fmt(A(r,cModel)),'Cônjuge(s)/SP':conj(r),
+      'NIF':_fmt(A(r,cNIF)),'Residência fiscal parcial':_fmt(A(r,cRFP)),'Executante':_fmt(A(r,cExec)),
+      'Estado':estadoLabel(estRaw),'Progresso %':pct(estRaw),'Anexos':anexos(r),
+      'Submetido':_fmt(A(r,cSubmet)),'Mod.49':_fmt(A(r,cMod49)),'Data Mod.49':_fmt(A(r,cDataMod49)),
       'N.º liquidação':_fmt(A(r,25)),'Pagamento':_fmt(A(r,26)),'Data liquidação':_fmt(A(r,27))||_fmt(A(r,26)),'Montante (€)':null,'Email inicial':_fmt(A(r,29)),
       'Validado':_fmt(A(r,24)),'Faturado':_fmt(A(r,57)),'Valor 2025 (€)':_fmt(A(r,58)),
       'Valor 2026 (€)':_fmt(A(r,59)),'Pago':_fmt(A(r,60)),'Consulting/CVSP':_fmt(A(r,61)),
-      'Fatura (MF)':_fmt(A(r,62)),'Docs suporte':_fmt(A(r,12)),'Divergências':_fmt(A(r,32)),
-      'Notas':_fmt(A(r,4)),'OBSERVAÇÕES':_fmt(A(r,31))
+      'Fatura (MF)':_fmt(A(r,62)),'Docs suporte':_fmt(A(r,cDocs)),'Divergências':_fmt(A(r,32)),
+      'Notas':_fmt(A(r,cNotas)),'OBSERVAÇÕES':_fmt(A(r,31))
     });
   }
   const headers=['Ref','Cliente','Modelo','Cônjuge(s)/SP','NIF','Residência fiscal parcial','Executante','Estado','Progresso %','Anexos','Submetido','Mod.49','Data Mod.49','N.º liquidação','Pagamento','Data liquidação','Montante (€)','Email inicial','Validado','Faturado','Valor 2025 (€)','Valor 2026 (€)','Pago','Consulting/CVSP','Fatura (MF)','Docs suporte','Divergências','Notas','OBSERVAÇÕES'];
@@ -2132,28 +2156,7 @@ function renderHonorarios(){
    Trabalha sobre as colunas já transformadas por parseIRS:
    Estado (texto), Progresso % (0-100), Anexos ("Cat. A/B · Anexo J, L"), Faturado, Pago, Mod.49, Validado. */
 let irsState={phase:'__all__',exec:'__all__',modelo:'__all__',flags:{},onlySub:false};
-function irsPct(r){
-  // 1) Progresso % já calculado no parse
-  let p=parseFloat(r['Progresso %']);
-  if(!isNaN(p))return p;
-  // 2) Estado em número/texto: "1", "0.99", "100%", "99%", "0,99"
-  let raw=r['Estado'];
-  if(raw!=null){
-    let s=String(raw).trim().replace('%','').replace(',','.');
-    let n=parseFloat(s);
-    if(!isNaN(n)){
-      // fração (0–1) → multiplica; já em escala 0–100 → usa direto
-      return n<=1 ? Math.round(n*100) : Math.round(n);
-    }
-    // 3) Estado como rótulo de texto
-    const e=s.toLowerCase();
-    if(e.includes('conclu'))return 100;
-    if(e.includes('quase'))return 90;
-    if(e.includes('curso'))return 60;
-    if(e.includes('inici')&&!e.includes('por'))return 20;
-  }
-  return 0;
-}
+function irsPct(r){const p=parseFloat(r['Progresso %']);if(!isNaN(p))return p;const e=String(r['Estado']||'').toLowerCase();if(e.includes('conclu'))return 100;if(e.includes('quase'))return 90;if(e.includes('curso'))return 60;if(e.includes('inici')&&!e.includes('por'))return 20;return 0;}
 function irsPhase(r){const p=irsPct(r);if(p>=100)return'Concluído';if(p>=90)return'Quase concluído';if(p>=50)return'Em curso';if(p>0)return'Iniciado';return'Por iniciar';}
 const IRS_PHASE_ORDER=['Concluído','Quase concluído','Em curso','Iniciado','Por iniciar'];
 function irsAnexoSet(r){const s=String(r['Anexos']||'').toUpperCase();const out=new Set();['A','B','F','G'].forEach(c=>{if(new RegExp('CAT\\.?[^·]*\\b'+c+'\\b').test(s))out.add('CAT '+c);});if(/ANEXO[^·]*\bJ\b/.test(s))out.add('Anexo J');if(/ANEXO[^·]*\bL\b/.test(s))out.add('Anexo L');return out;}
@@ -2198,13 +2201,9 @@ function renderIRS(){
   const aPagar=comMont.filter(n=>n>0);
   const mediaPagar=aPagar.length?Math.round(aPagar.reduce((a,b)=>a+b,0)/aPagar.length):null;
   const r=irsRows();
-  // ---- diagnóstico: contagem por faixa de estado (ajuda a confirmar que os dados estão atualizados) ----
-  let _c100=0,_c90=0,_c50=0,_c1=0,_c0=0;
-  all.forEach(x=>{const p=irsPct(x);if(p>=100)_c100++;else if(p>=90)_c90++;else if(p>=50)_c50++;else if(p>0)_c1++;else _c0++;});
   // ---- progress bar ----
   let html=`<div class="irs-prog"><div class="irs-prog-h"><h3>Progresso de submissões</h3><span>${entregues} de ${tot} IRS submetidos (Estado a 100%)</span></div>
-    <div class="irs-bar"><span style="width:${pctEntregues}%">${pctEntregues}%</span></div>
-    <div style="font-size:.72rem;color:var(--muted);margin-top:8px">Lidos do Excel: <b>${tot}</b> registos · a 100%: <b>${_c100}</b> · 90-99%: ${_c90} · 50-89%: ${_c50} · 1-49%: ${_c1} · 0%: ${_c0}</div></div>`;
+    <div class="irs-bar"><span style="width:${pctEntregues}%">${pctEntregues}%</span></div></div>`;
   // ---- KPIs ----
   html+=`<div class="panel-top"><div class="section-title">Indicadores IRS</div><div class="kpis">
     ${kpi('IRS na lista',r.length,'de '+tot+' total')}
