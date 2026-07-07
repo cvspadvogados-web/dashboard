@@ -524,7 +524,7 @@ const TAB_LABELS={'__home__':'🏠 Início','1000 ':'Clientes 1000','9000':'Pote
 const palette=['#c9a24b','#5b9bd5','#46b87a','#e0b341','#d57b9b','#9b8bd5','#e0925a','#5ac0b0','#c96a6a','#7ab85a'];
 const $=id=>document.getElementById(id);
 /* Versão do painel — atualiza aqui sempre que fizeres alterações */
-const APP_VERSION='4.4';
+const APP_VERSION='4.5';
 const APP_DATE='18/06/2026';
 (function(){const el=$('version');if(el)el.innerHTML=`<b>v${APP_VERSION}</b>Criado em ${APP_DATE}`;})();
 /* ===== PER-SOURCE PARSERS ===== */
@@ -3642,12 +3642,12 @@ document.addEventListener('keydown',e=>{
 });
 
 /* =====================================================================
-   MÓDULO PIN — PIN fixo 3003 (hash SHA-256 embutido)
+   MÓDULO PIN — PIN fixo 5101 (hash SHA-256 embutido)
    Sem setup, sem opção de entrar sem PIN.
    ===================================================================== */
 const PIN_DIGITS = 4;
-/* SHA-256 de '3003' — pré-calculado */
-const PIN_CORRECT_HASH = '7a24738c1004bcc250f2e527aeab5e3b1891d00a5146a54b2e8c20df84a8c09d';
+/* SHA-256 de '5101' — pré-calculado */
+const PIN_CORRECT_HASH = '36a4f11f8ddfc2967b33f9fd46584ba25abd33645ef1691f20453285af5d3bf2';
 
 let pinBuffer   = '';
 let pinUnlocked = false;
